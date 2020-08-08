@@ -1,0 +1,192 @@
+<h1 class="h1">Uso de Admin SDK de google con PHP</h1><br />
+
+No entraré en muchos detalles, solo les compartiré fragmentos de código. Y también asumo que ya tienes tu variable cliente
+que tiene la conexión a google, con los scopes del admin sdk correspondientes.<br /><br />
+
+Si no sabes que scopes usar para estos ejemplos que pondré, usa estos:
+
+<ul>
+	<li>https://www.googleapis.com/auth/admin.directory.orgunit.readonly</li>
+	<li>https://www.googleapis.com/auth/admin.directory.user</li>
+	<li>https://www.googleapis.com/auth/admin.reports.audit.readonly (no estoy seguro de éste, pero asi lo tengo anotado en mis códigos)</li>
+</ul>
+
+Algo que no debes olvidar...Necesitas tener una cuenta dada de alta en <a href="admin.google.com">admin.google.com</a> con permiso total.
+En este ejercicio asumiremos que es <strong>marcos.gtz@institucion.edu.mx</strong>.<br /><br />
+
+Para hacer uso del código ya debiste haberte autenticado con oauth2 usando el correo administrador (marcos.gtz@institucion.edu.mx)<br /><br />
+
+<div class="h5">Lista de Unidades Organizacionales</div>
+
+Para comprender este ejemplo, imagina que ya creates tus organizaciones quedando algo parecido a esto
+
+<ul>
+	<li>/</li>
+	<li>/Alumnos</li>
+	<li>/Alumnos/Egresados</li>
+	<li>/Alumnos/Activos</li>
+	<li>/Docentes</li>
+	<li>/Administrativos</li>
+</ul>
+
+Este código te devolverá todas las orgnizaciones que estén debajo de /
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	function lista_suborganizaciones( )
+	{
+		Global $cliente;
+
+		$salida		= array( );
+
+		$directorio	= new Google_Service_Directory( $cliente );
+
+		// $_SESSION["correo"] contiene el valor "marcos.gtz@institucion.edu.mx"
+		$idcliente	= $directorio -> users -> get( $_SESSION["correo"], array( "projection" => "basic", "viewType" => "admin_view" ) )["customerId"];
+		$basico		= $directorio -> orgunits -> listOrgunits( $idcliente, array( "orgUnitPath" => "/", "type" => "all" ) );
+
+		foreach( $basico["organizationUnits"] as $suborganizacion )
+		{
+			$salida[ $suborganizacion['orgUnitPath'] ] = $suborganizacion['description'];
+		}
+
+		return $salida;
+	}
+?&gt;
+</pre>
+
+<div class="h5">Cambiar la contraseña un correo</div>
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	function cambiar_contraseña( )
+	{
+		Global $cliente;
+
+		$correo		= "algun.alumno@institucion.edu.mx";
+		$contraseña	= "X123kubmFFF2!";
+
+		$directorio	= new Google_Service_Directory( $cliente );
+		$usuario = new Google_Service_Directory_User( );
+		$usuario -> changePasswordAtNextLogin = false;
+		$usuario -> setPassword( md5( $contraseña ) );
+		$usuario -> setHashFunction( "MD5" );
+
+		$directorio -> users -> update( $correo, $usuario );
+
+		echo "Contraseña cambiada con éxito";
+	}
+?&gt;
+</pre>
+
+<div class="h5">Crear un correo</div>
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	function crear( )
+	{
+		Global $cliente;
+
+		$correo_nuevo		= 'matricula@institucion.edu.mx'
+		$contraseña_nueva	= "X123kubmFFF2!"
+
+		$directorio		= new Google_Service_Directory( $cliente );
+		$usuario_nombre		= new Google_Service_Directory_UserName( );
+		$usuario_nombre		-> setFamilyName( "Gutiérrez X" );
+		$usuario_nombre		-> setGivenName( "Marcos" );
+		$usuario_nombre		-> setFullName( "Marcos Gutiérrez X" );
+
+		$usuario = new Google_Service_Directory_User( );
+		$usuario -> setName( $usuario_nombre );
+		$usuario -> setPrimaryEmail( $correo_nuevo );
+
+		$usuario -> orgUnitPath 		= '/Alumnos/Activos';
+		$usuario -> changePasswordAtNextLogin 	= false;
+		$usuario -> suspended 			= false;
+		$usuario -> setPassword( md5( $contraseña_nueva ) );
+		$usuario -> hashFunction = "md5";
+
+		try
+		{
+			$directorio -> users -> insert( $usuario );
+			echo "Correo creado con éxito";
+			return true;
+		}
+		catch( Exception $e )
+		{
+			echo json_decode( $e -> getMessage(), true )['error']['message'];
+		}
+
+		return false;
+	}
+?&gt;
+</pre>
+
+<div class="h5">Borrar un correo</div>
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	function borrar( )
+	{
+		Global $cliente;
+
+		$directorio	= new Google_Service_Directory( $cliente );
+
+		try
+		{
+			$directorio -> users -> delete( $correo_a_borrar );
+			return true;
+		}
+		catch( Exception $e )
+		{
+			echo json_decode( $e -> getMessage(), true )['error']['message'];
+		}
+
+		return false;
+	}
+?&gt;
+</pre>
+
+<div class="h5">Lista de usuarios dentro de una unidad organizacional (por ejemplo /Alumnos)</div>
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	function buscar( )
+	{
+		Global $cliente;
+
+		$pageToken 	= null;
+		$directorio	= new Google_Service_Directory( $cliente );
+
+		// Mas detalles para estos parámetros: https://developers.google.com/admin-sdk/directory/v1/reference/users/list
+		$optParams 	= array(
+			'customer'	=> 'my_customer',
+			'maxResults' 	=> 500,
+			'orderBy' 	=> 'email',
+			'query'		=> 'orgUnitPath=/Alumnos'
+		);
+
+		do
+		{
+			if( $pageToken )
+				$optParams['pageToken'] = $pageToken;
+
+			$resultado	= $directorio -> users -> listUsers( $optParams );
+			$pageToken	= $resultado -> getNextPageToken( );
+
+			foreach( $resultado -> getUsers() as $usuario )
+			{
+				printf( "Correo: %s Nombre: (%s) Creado: %s, Último acceso: %s <br />", $usuario -> getPrimaryEmail(), $usuario -> getName() -> getFullName(), $usuario -> getCreationTime(), $usuario -> getLastLoginTime( ) );
+			}
+		}while( $pageToken );
+	}
+?&gt;
+</pre>
+
+<div class="h5">Documentación</div>
+
+<ul>
+	<li><a href="https://developers.google.com/admin-sdk/directory/v1/quickstart/php">https://developers.google.com/admin-sdk/directory/v1/quickstart/php</a></li>
+	<li><a href="https://developers.google.com/resources/api-libraries/documentation/admin/directory_v1/php/latest/class-Google_Service_Directory_Users_Resource.html">https://developers.google.com/resources/api-libraries/documentation/admin/directory_v1/php/latest/class-Google_Service_Directory_Users_Resource.html</a></li>
+	<li><a href="https://developers.google.com/admin-sdk/directory/v1/guides/search-users">https://developers.google.com/admin-sdk/directory/v1/guides/search-users</a></li>
+</ul>

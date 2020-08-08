@@ -1,0 +1,36 @@
+<h1 class="h1">Monitoreo de conexiones</h1><br />
+
+Apache te da la opción de ver quienes se están conectando a tu servidor, cuantos recursos está consumiendo, o que página está usando en ese momento.
+Para eso necesitas habilitar un módulo llamado <strong>status</strong>.
+
+<kbd class="kbd-linux"># a2enmod status</kbd>
+
+Ahora necesitamos editar el siguiente archivo <strong>/etc/apache2/mods-enabled/status.conf</strong> y adentro de
+<strong>&lt;Location /server-status&gt;</strong> agregamos lo siguiente
+
+<kbd class="kbd-linux">Require local</kbd>
+
+Quedando de la siguiente forma
+
+<kbd class="kbd-linux">
+<pre>
+&lt;Location /server-status&gt;
+	SetHandler server-status
+	Require local
+&lt;/Location&gt;
+</pre>
+</kbd>
+
+Y después reiniciamos apache
+
+<kbd class="kbd-linux"># /etc/init.d/apache2 restart</kbd>
+
+Y eso es todo, para poder ver nuestro monitor, ingresamos a <a href="http://localhost/server-status">http://localhost/server-status</a>
+<br /><br />
+Debemos ver algo parecido a esto
+<br />
+<img src="imagenes/apache_monitor.png" class="border border-dark" />
+<br /><br />
+Notarás una serie de puntitos ............. cada punto es un recurso que está disponible, para que una persona se conecte a tu página y ocupe ese recurso.
+La cantidad de puntos representa la cantidad máxima de personas que puedes tener al mismo tiempo conectados, si quieres ampliarlo necesitas meterte con
+<strong>/etc/apache2/mods-enabled/mpm_prefork.conf</strong>

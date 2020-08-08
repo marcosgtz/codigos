@@ -1,0 +1,37 @@
+<h1 class="h1">Apache con php-fpm</h1><br />
+
+PHP-FPM es una alternativa (mucho mejor y más rápido) al tradicional manejo de procesos entre apache y php. No entraré en detalles,
+puedes buscar en google las diferencias entre mod_php y fpm. Pero si te enseñaré a instarlarlo
+
+<br /><br />
+<div class="h6">1. Si tienes el apache2-mod_php, hay que deshabilitarlo primero</div>
+
+<kbd class="kbd-linux"># a2dismod php7.3</kbd>
+<kbd class="kbd-linux"># /etc/init.d/apache2 restart</kbd>
+
+
+<div class="h6">2. Instalas el paquete de php-fpm</div>
+
+<kbd class="kbd-linux"># apt install php-fpm</kbd>
+
+
+<div class="h6">3. Habilitas la configuracion de php-fpm y el modulo fcgi</div>
+
+<kbd class="kbd-linux"># a2enconf php7.3-fpm</kbd>
+<kbd class="kbd-linux"># a2enmod proxy_fcgi</kbd>
+
+<div class="h6">4. Editas /etc/apache2/conf-enabled/php7.3-fpm.conf</div>
+
+Aprox linea 16: cambias "Require all denied" por "Require all granted"
+<br /><br />
+Esto permitirá ejecutar los php's, aunque las recomendaciones es ponerlo dentro de VirtualHost o Directory
+<br /><br />
+
+<div class="h6">5. Reinicias apache</div>
+
+<kbd class="kbd-linux"># /etc/init.d/apache2 restart</kbd>
+
+<br />
+
+<div class="h6">Créditos</div>
+<a href="https://www.tuxed.net/fkooman/blog/debian_10_php_fpm.html">https://www.tuxed.net/fkooman/blog/debian_10_php_fpm.html</a>

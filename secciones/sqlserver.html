@@ -1,0 +1,84 @@
+<h1 class="h1">Instalación de la libreria para usar SQLServer</h1><br />
+
+<strong>Paso 1: </strong>Instalar paquetes necesarios
+
+<kbd class="kbd-linux"># apt-get install php php-dev php-xml curl</kbd>
+
+
+<strong>Paso 2: </strong>Añadir la llave y el repositorio de microsoft
+
+<kbd class="kbd-linux"># curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -</kbd>
+<kbd class="kbd-linux"># curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list</kbd>
+
+
+<strong>Paso 3: </strong>Actualizamos la lista de paquetes e instalamos los paquetes necesarios
+
+<kbd class="kbd-linux"># apt-get update</kbd>
+<kbd class="kbd-linux"># apt-get install msodbcsql17 unixodbc-dev</kbd>
+
+
+<strong>Paso 4: </strong>Instalamos los paquetes de pecl
+
+<kbd class="kbd-linux"># pecl install sqlsrv</kbd>
+<kbd class="kbd-linux"># pecl install pdo_sqlsrv</kbd>
+
+
+<strong>Paso 5: </strong>Agregamos las librerias compiladas a los modulos de php
+
+<kbd class="kbd-linux"># echo "extension=sqlsrv.so" > /etc/php/7.3/mods-available/sqlsrv.ini</kbd>
+<kbd class="kbd-linux"># echo "extension=pdo_sqlsrv.so" > /etc/php/7.3/mods-available/pdo_sqlsrv.ini</kbd>
+
+
+<strong>Paso 6: </strong>Habilitamos los módulos php para apache (mod-php)
+
+<kbd class="kbd-linux"># cd /etc/php/7.3/apache2/conf.d/</kbd>
+<kbd class="kbd-linux"># ln -s ../../mods-available/sqlsrv.ini 35-sqlsrv.ini</kbd>
+<kbd class="kbd-linux"># ln -s ../../mods-available/pdo_sqlsrv.ini 40-pdo_sqlsrv.ini</kbd>
+
+
+<strong>Paso 7: </strong>Reiniciamos apache
+
+<kbd class="kbd-linux"># /etc/init.d/apache2 restart</kbd>
+
+<br />
+
+<h1 class="h1">Códigos de ejemplo</h1><br />
+
+<div class="h5">Usando la libreria normal</div>
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	$dbconn 	= pg_connect("host=localhost dbname=unisi user=unisi password=earias12345") or die('No se ha podido conectar: ' . pg_last_error());
+	$query		= 'SELECT * FROM personas';
+	$result		= pg_query($query) or die('La consulta fallo: ' . pg_last_error());
+
+	while( $fila = pg_fetch_assoc( $result ) )
+	{
+	 	echo "$fila[p_correo]--$fila[p_nombre]\n";
+	}
+
+	pg_free_result( $result );
+	pg_close( $dbconn );
+?&gt;
+</pre>
+
+<div class="h5">Usando la libreria PDO</div>
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	try
+	{
+		$bd 	= new PDO( 'pgsql:dbname=unisi;host=127.0.0.1', 'unisi', 'earias12345' );
+		$query	= 'SELECT * FROM personas';
+
+		foreach( $bd -> query( $query ) as $fila )
+		{
+			echo "$fila[p_correo]**$fila[p_nombre]\n";
+		}
+	}
+	catch( PDOException $e )
+	{
+		echo 'Falló la conexión: ' . $e->getMessage( );
+	}
+?&gt;
+</pre>

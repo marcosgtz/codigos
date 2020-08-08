@@ -1,0 +1,216 @@
+<h1 class="h1">Seguridad básica Apache</h1><br />
+
+<p>
+	Apache puede ofrecer cierta seguridad a tus páginas, pero recuerda que también depende de la programación de tus php's y de los permisos de archivos.
+	Con que uno falle, puede comprometer todo (la experiencia te habla). Pero aqui únicamente abordaremos lo relacionado a apache.
+	<br /><br />
+	Intentaré explicarme lo mas simple posible.
+	<br /><br />
+	Ya sea que uses XAMPP en windows, WAMP Server, Debian, CentOS u otro. El modo de trabajar de apache no cambia, tampoco la sintaxis de configuración;
+	lo que si cambia es la manera en que se organizan los archivos de configuración, algunos ponen casi todo dentro de apache2.conf, otros lo dividen
+	en multiples carpetas, otros tienen modulos desactivados por defecto, etc.
+</p>
+
+<br />
+<h5 class="h5">Estructura de directorios de Apache en Debian 10</h5>
+
+<p>
+	Todo se encuentra en <strong>/etc/apache2/</strong> y se divide en la siguientes carpetas:
+	<ul>
+		<li><strong>conf-available/</strong> es la carpeta que contiene todos los archivos de configuración DISPONIBLES, puedes crear tus propios archivos aqui si no quieres tocar los que ya existen</li>
+		<li><strong>conf-enabled/</strong> es la carpeta que contiene todos los archivos de configuración HABILITADOS, los archivos que encuentres aquí son prácticamente accesos directos de la carpeta <strong>conf-available/</strong></li>
+		<li><strong>mods-available/</strong> es la carpeta que contiene todos los módulos (y algunos archivos de configuración del módulo) DISPONIBLES</li>
+		<li><strong>mods-enabled/</strong> es la carpeta que contiene todos los módulos HABILITADOS, al igual que conf-enabled lo que hay aquí son accesos directos de <strong>mods-available/</strong></li>
+		<li><strong>sites-available/</strong>es la carpeta que contiene todos los dominios configurados y DISPONIBLES</li>
+		<li><strong>sites-enabled/</strong>es la carpeta que contiene todos los dominios configurados y HABILITADOS</li>
+	</ul>
+</p>
+
+<br />
+<h5 class="h5">Antes de empezar</h5>
+
+Imagina que tienes una página ya hecha en <strong>/var/www/html/proyecto1/</strong> con acceso desde <a href="http://localhost/proyecto1">http://localhost/proyecto1</a>
+con la siguiente estructura:
+<ul>
+	<li><strong>extras/</strong></li>
+	<li><strong>libraries/</strong></li>
+		<li class="ml-4">index.html -> coloca aquí un Hola Mundo</li>
+	<li><strong>css/</strong></li>
+		<li class="ml-4">index.css</li>
+	<li><strong>images/</strong></li>
+		<li class="ml-4">imagen1.jpg</li>
+		<li class="ml-4">imagen2.jpg</li>
+		<li class="ml-4">imagen3.jpg</li>
+	<li><strong>scripts/</strong></li>
+		<li class="ml-4">index.js</li>
+		<li class="ml-4">hola.php</li> -> coloca aqui un echo
+	<li><strong>index.php</strong></li> -> una página sencilla
+</ul>
+
+<br />
+<h5 class="h5">Directiva &lt;Directory&gt;</h5>
+
+
+Puedes hacer que ciertas carpetas tenga permisos por IP's o por Rango de IP's, incluso ponerle contraseña, o denegar completamente el acceso a todos excepto a ti.
+<br /><br />
+
+Lo recomendado es colocar estas condiciones en <strong>/etc/apache2/conf-enabled/security.conf</strong> (al final o al principio del archivo o donde gustes)
+o puedes crear tu propio archivo, pero recuerda colocarlo en <strong>/etc/apache2/conf-enabled/</strong> con la extensión .conf
+<br /><br />
+
+IMPORTANTE: Cada vez que modifiques algo en los archivos, debes reiniciar apache para aplicar los cambios
+<br /><br />
+
+A continuación veremos los ejemplos más basicos, aunque existen muchas opciones disponibles para Directory, eso lo puedes consultar en
+<a href="https://httpd.apache.org/docs/2.4/es/mod/core.html#directory">https://httpd.apache.org/docs/2.4/es/mod/core.html#directory</a>
+<br /><br />
+
+<h6 class="h6">Ejemplo 1: Denegar el acceso a la carpeta libraries/</h6>
+
+<pre class="prettyprint">
+	&lt;Directory /var/www/html/proyecto1/libraries&gt;
+		Require all denied
+	&lt;/Directory&gt;
+</pre>
+
+De tal forma que si entras a <a href="http://localhost/proyecto1/libraries/" target="_blank">http://localhost/proyecto1/libraries/</a>
+ni siquiera deberías poder ver el hola mundo, ni ningún otro archivo que esté dentro de libraries, en su lugar debes ver "Forbidden". Como en la imagen de abajo.
+
+<br />
+<img src="imagenes/apache_forbidden.png" class="border border-dark" />
+
+<br /><br /><br />
+
+<h6 class="h6">Ejemplo 2: Si no existe un archivo index, mostrar todos los archivos dentro de la carpeta images/</h6>
+
+<pre class="prettyprint">
+	&lt;Directory /var/www/html/proyecto1/images&gt;
+		Options Indexes
+		Require all granted
+	&lt;/Directory&gt;
+</pre>
+
+De tal forma que si entras a <a href="http://localhost/proyecto1/images/" target="_blank">http://localhost/proyecto1/images/</a>
+debes poder ver todos los archivos que existen dentro de la carpeta siempre y cuando no exista un index.html o index.php
+<br />
+<img src="imagenes/apache_ver.png" class="border border-dark" />
+
+<br /><br /><br />
+
+<h6 class="h6">Ejemplo 3: Permitir a localhost y a la IP 10.0.0.2 el acceso a proyecto1</h6>
+
+<pre class="prettyprint">
+	&lt;Directory /var/www/html/proyecto1/&gt;
+		Require ip ::1 10.0.0.2
+	&lt;/Directory&gt;
+</pre>
+
+<br />
+
+<h6 class="h6">Ejemplo 4: Permitir a localhost y al segmento 10.0.0.0/24 el acceso a proyecto1</h6>
+
+<pre class="prettyprint">
+	&lt;Directory /var/www/html/proyecto1/&gt;
+		Require ip ::1 10.0.0.0/24
+	&lt;/Directory&gt;
+</pre>
+
+<br />
+
+<h6 class="h6" id="directory-5">Ejemplo 5: Permitir el uso de .htaccess en proyecto1 (lo veremos después que es éste archivo)</h6>
+
+<pre class="prettyprint">
+	&lt;Directory /var/www/html/proyecto1/&gt;
+		AllowOverride All
+	&lt;/Directory&gt;
+</pre>
+
+<br />
+
+<h6 class="h6">Ejemplo 6: Denegar el acceso a todas las carpetas "images" de todos tus proyectos</h6>
+
+<pre class="prettyprint">
+	&lt;Directory /var/www/html/*/images&gt;
+		Require all denied
+	&lt;/Directory&gt;
+</pre>
+
+<br />
+
+<h6 class="h6">Ejemplo 7: Desactivar la ejecución de archivos php's en tu carpeta scripts/ (solo funciona si estás usando el módulo mod-php y no php-fpm)</h6>
+
+<pre class="prettyprint">
+	&lt;Directory /var/www/html/scripts&gt;
+		AddHandler text/plain .php .php4 .php5 .php6
+		php_admin_flag engine off
+	&lt;/Directory&gt;
+</pre>
+
+De tal forma que si entras a <a href="http://localhost/proyecto1/scripts/hola.php" target="_blank">http://localhost/proyecto1/scripts/hola.php</a>
+no debe ejecutarse el php y en su lugar verás el contenido del archivo.
+<br />
+
+<br />
+
+<h6 class="h6">Ejemplo 8: Ponerle contraseña a la carpeta extras/</h6>
+
+Antes que nada, debemos crear un archivo llamado ".htpasswd", puedes llamarlo de otra forma, pero procura que lleve .ht al inicio del nombre (por seguridad).
+Lo vamos a crearlo en /var/www/html/proyecto1/ con el siguiente comando linux:
+
+<br />
+<kbd class="kbd-linux">~$ htpasswd -c -b /var/www/html/proyecto1/.htpasswd marcos 12345</kbd>
+
+Donde <strong>marcos</strong> es el nombre de usuario, y <strong>12345</strong> es la contraseña. Y ahora solo nos falta añadir la configuración:
+<br /><br />
+
+<pre class="prettyprint">
+	&lt;Directory /var/www/html/proyecto1/extras&gt;
+		AuthType Basic
+		AuthName "Acceso Prohibido"
+		AuthUserFile /var/www/html/proyecto1/.htpasswd
+		Require valid-user
+	&lt;/Directory&gt;
+</pre>
+
+Si intentas ingresar a <a href="http://localhost/proyecto1/extras" target="_blank">http://localhost/proyecto1/extras</a> verás una ventana como ésta:
+<br />
+<img src="imagenes/apache_password.png" />
+
+<br /><br />
+<h6 class="h6">Mas ejemplos: <a href="https://httpd.apache.org/docs/2.4/es/mod/core.html#directory" target="_blank">https://httpd.apache.org/docs/2.4/es/mod/core.html#directory</a></h6>
+
+
+<br />
+<h5 class="h5">Archivo .htaccess</h5>
+
+Como acabas de ver, cada vez que modificas o agregas alguna configuracion/condición que se encuentra en /etc/apache2/conf-enabled/ necesitas
+reiniciar el servicio de apache, pero para ello necesitas ser root, o tener permisos con sudo.
+
+<br /><br />
+Existe una forma de aplicar cambios sin tener que ser root, ni tener que irse a la carpeta /etc/apache2/conf-enabled/, y eso es crear un archivo
+llamado .htaccess y colocarlo en la carpeta donde está tu proyecto/página. Parece simple, pero por seguridad no tendrás disponibles todas las opciones
+que se pueden usar en &lt;Directory&gt; o en &lt;VirtualHost&gt;
+
+<br /><br />
+Antes de empezar, borra o comenta todos ejemplos que acabamos de hacer con &lt;Directory&gt; a excepción del <a href="#directory-5">Ejemplo 5</a>
+y reinicia apache
+
+<br /><br />
+<h6 class="h6">Ejemplo 1: Denegar el acceso a la carpeta images/</h6>
+Crea un archivo en blanco llamado .htaccess (si, estás viendo bien, lleva un punto al principio) en /var/www/html/proyecto1/images/, y copia, pega y guarda lo siguiente
+(no es necesario reiniciar apache):
+
+<kbd class="kbd-linux">Require all denied</kbd>
+
+Ahora intenta ingresar a <a href="http://localhost/proyecto1/" target="_blank">http://localhost/proyecto1/</a> y verás que simplemente no cargan tus imágenes.
+<br />
+Ahora intenta ingresar a <a href="http://localhost/proyecto1/images/" target="_blank">http://localhost/proyecto1/images/</a> y notarás un acceso prohibido.
+
+<br /><br /><br />
+<h6 class="h6">¿Cómo saber que opciones puedo colocar en .htaccess?</h6>
+
+Simplemente ve a la documentación de apache, por ejemplo en <a href="https://httpd.apache.org/docs/2.4/es/mod/mod_authz_core.html#require">https://httpd.apache.org/docs/2.4/es/mod/mod_authz_core.html#require</a>
+verás lo siguiente:
+
+<img src="imagenes/apache_context.png" /> <br />
+La parte subrayada en rojo, significa que la opción o directiva <strong>Require</strong> puede ser usada en el .htaccess además de &lt;Directory&gt;

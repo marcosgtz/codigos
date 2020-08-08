@@ -1,0 +1,175 @@
+<h1 class="h1">Breve introducción</h1><br />
+
+<p>
+	Esta talvez sea la parte mas tediosa o dificil de comprender, si eres primerizo, te costará entenderle a la documentacion de google, y si ya has trabajado
+	antes, notarás que tiene ligeros problemas en su documentación para PHP.
+	<br /><br />
+	Antes, medio te explicaré como trabajan las api's de google:
+	<ol>
+		<li>Para usar cualquier API de google, necesitarás si o si que el usuario se autentique con su correo de google</li>
+		<li>El protocolo de autenticación se llama Oauth2</li>
+		<li>Para poder usar el Oauth2 y las API's necesitarás darte de alta en <a href="https://console.developers.google.com/">https://console.developers.google.com/</a></li>
+		<li>Deberás crear un proyecto donde elegirás que API's (gmail, drive, sheets, etc) vas a usar en tu programación y también para configurar el Oauth2</li>
+		<li>Podrás elegir tantas API's como tu quieras en el mismo proyecto</li>
+	</ol>
+</p>
+
+<br />
+<div class="h5">Como funciona el Oauth2</div>
+<br />
+
+<p>
+	Si te vas a la <a href="https://developers.google.com/identity/protocols/oauth2">documentacion de google</a> y no le entendiste, te explicaré a mi manera:
+	<br /><br />
+	Normalmente verás ésta imagen
+	<br />
+	<img src="https://developers.google.com/identity/protocols/oauth2/images/flows/authorization-code.png" />
+	<br />
+	Esto significa que desde tu código PHP tendrás que mandar una solicitud a google y google te mandará a la pantalla de acceso:
+	<br />
+	<img src="imagenes/google_acceso.jpg" />
+	<br />
+	Después de el usuario haya puesto su correo y contraseña, google te mandará de regreso a tu página, pero, con una variable GET llamada "code".
+	Ese código(code) tendrás que canjearlo por un "token".
+	<br /><br />
+	El token te servirá para que no tengas que pasar por la pantalla de login cada rato y para que puedas usar las API's, por eso es necesario
+	que lo conserves en tus variables de sesion.
+</p>
+
+<br />
+<div class="h5">Crear mi primer proyecto</div>
+<br />
+
+Como expliqué antes, necesitarás darte de alta en <a href="https://console.developers.google.com/">https://console.developers.google.com/</a>. Una vez
+adentro, tienes que ir al menú superior y crear tu proyecto.
+<br /><br />
+Te dejaré un video que encontré del como crear un proyecto: <a href="https://www.youtube.com/watch?v=UVxkn8Ynbbs">https://www.youtube.com/watch?v=UVxkn8Ynbbs</a>
+desde el minuto 0:00 hasta el minuto 1:20
+<br /><br /><br />
+
+<div class="h5">Crear las credenciales Oauth2</div>
+<br />
+Antes de empezar, ya debes tener un dominio (por ejemplo www.marcosgtz.mx), no puedes trabajar con tu localhost, simplemente no es posible, es obligatorio tener un dominio.
+<br />
+Ahora será necesario crear tus credenciales de Oauth2, solo con 1 es necesario para empezar a trabajar (porque puedes crear varias).
+Al momento de crearlo deberás colocar un nombre de proyecto (puede ser cualquiera, podrás modificarlo después), asignar el dominio
+autorizado (esto significa que coloques las páginas que podrán hacer uso de tus credenciales
+de oauth2) y posteriormente seleccionar "Aplicación web". Puedes ver el mismo video de arriba (minuto 2:04 - 2:43).
+<br /><br />
+Cuando termines de crear tu credencial, deberás conservar 2 datos: "ID de cliente" y "Secreto del cliente". Esto te lo pedirá la libreria de PHP. Debe ser algo parecido a lo siguiente:
+<br /><br />
+<strong>ID de cliente:</strong> 827514654166-js654162f08lfl2aasmacd63gocxk2ry.apps.googleusercontent.com
+<br />
+<strong>Secreto del cliente:</strong> yPLkIlaksLq_UzQJdsHjy4A5
+
+<br /><br /><br />
+<h1 class="h1">Autenticación con PHP</h1><br />
+
+Antes de empezar, deberás instalar las librerias de google para php, y para ello es necesario usar el composer: (recuerda que composer debes ejecutarlo en la carpeta
+donde está tu proyecto/página)
+
+<kbd class="kbd-linux">$ composer require google/apiclient</kbd>
+
+Por el momento necesitaremos crear 2 archivos php's para nuestro primer ejemplo.
+<ol>
+	<li>Un archivo será quien hará la petición hacia google</li>
+	<li>Otro será quien reciba el "code" que regresa google para canjearlo por un token, y una vez hecho, crear las variables de sesion y redirigirlo a una página de bienvenida </li>
+</ol>
+
+<br />
+Esto será el contenido del archivo php No. 1 (lo llamaremos index.php). Y asumiremos que tu página está alojada en el dominio www.marcosgtz.mx
+(debes darlo de alta previamente en <a href="https://console.developers.google.com/">https://console.developers.google.com/</a> en el Oauth2)
+<pre class="prettyprint lang-php">
+&lt;?php
+	// Este es el archivo index.php
+	require_once( "vendor/autoload.php" );
+	require_once( "canjear.php" );
+
+	$cliente_cfg	= array(
+				'application_name'	=> 'Prueba 1',	// El nombre que tu quieras ponerle
+				'client_id'		=> '827514654166-js654162f08lfl2aasmacd63gocxk2ry.apps.googleusercontent.com',
+				'client_secret'		=> 'yPLkIlaksLq_UzQJdsHjy4A5',
+				'redirect_uri'		=> 'http://www.marcosgtz.mx/',	//La url de tu página, éste tambien debe estar dado de alta en console.developers.google.com (en la parte de oauth2), tal cual como lo hayas escrito
+			);
+
+	$cliente	= new Google_Client( $cliente_cfg );
+	$cliente	-> setScopes( array( "https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email" ) );
+	/*	Los scopes básicamente son los datos que quieres manipular u obtener de la persona que se está autenticando.
+		Cada scope te puede proporcionar una serie de datos
+		Por ejemplo: https://www.googleapis.com/auth/userinfo.email te permitirá obtener el correo de la persona
+		Por ejemplo: https://www.googleapis.com/auth/userinfo.profile te permitirá obtener la información pública de la persona (nombre, foto de perfil, etc)
+		Cada scope que coloques, le será avisado de antemano a la persona que ciertos datos serán recopilados por la página.
+	*/
+
+	session_start( );
+
+	// La primera vez que ingrese la persona, caerá en este IF ya que no ha iniciado sesión todavia
+	if( !isset( $_SESSION['correo'] ) )
+	{
+		// La primera vez caerá en este IF, que lo mandará a la página de google para que la persona coloque su correo y contraseña
+		if( !isset( $_GET['code'] ) )
+		{
+			header( "Location: ".filter_var( $cliente -> createAuthUrl( ), FILTER_SANITIZE_URL ) );
+			exit;
+		}
+		else
+		{
+			// Una vez que haya colocado su correo y contraseña, google te redirigirá a tu página pero con una variable GET llamada code, para que lo puedas canejar por un token
+			obtener_codigo( $cliente );
+		}
+	}
+	else
+	{
+		echo "Bienvenido $_SESSION[correo], acabas de autenticarte usando google";
+	}
+?&gt;
+</pre>
+
+<br /><br />
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	// Este es el archivo canjear.php
+	function obtener_codigo( &$cliente )
+	{
+		$cliente -> authenticate( $_GET['code'] );
+
+		$_SESSION['token'] = $cliente -> getAccessToken();
+
+		$cliente -> setAccessToken( $_SESSION['token'] );
+
+		if( $cliente -> isAccessTokenExpired( ) )
+		{
+			session_destroy( );
+		}
+		else
+		{
+			$oauth2 	= new Google_Service_Oauth2( $cliente );
+			$datos		= $oauth2 -> userinfo -> get();
+
+			$_SESSION["id"]		= $datos["id"];
+			$_SESSION["nombre"]	= $datos["name"];
+			$_SESSION["correo"]	= $datos["email"];
+
+			header( "Location: " . $cliente -> getRedirectUri() );
+		}
+	}
+?&gt;
+</pre>
+
+<div class="h5">Documentación</div>
+
+<ul>
+	<li>Introducción: <a href="https://developers.google.com/identity/protocols/oauth2/web-server">https://developers.google.com/identity/protocols/oauth2/web-server</a></li>
+	<li>Lista de scopes: <a href="https://developers.google.com/identity/protocols/oauth2/scopes">https://developers.google.com/identity/protocols/oauth2/scopes</a></li>
+</ul>
+
+<div class="h5">Advertencia</div>
+
+En este ejemplo de autenticación se usó lo mínimo de código php para que puedas entenderlo, pero no está a pruebas de fallas. Si llegas a usar la API "Admin SDK" de google
+para administrar los correos de tu organización (si es que perteneces a una), google te pedirá cada rato tu token, asi que tendrás que adaptar el código
+de acuerdo a tus necesidades.
+<br /><br />
+Por organización me refiero a lo siguiente: imagina que trabajas en una universidad, y dicha universidad hizo una solicitud a google para que crear correos con
+el dominio @ittg.edu.mx. Por lo tanto, quieres hacer una página para crear o administrar correos de acuerdo a tus necesidades (google ya tiene una, pero
+te darás cuenta que requieres mas cosas). En este punto es donde es absolutamente necesario usar el oauth2 y el admin sdk.

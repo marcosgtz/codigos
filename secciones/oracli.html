@@ -1,0 +1,70 @@
+<h1 class="h1">Instalación de la libreria oci8 para PHP-CLI</h1><br />
+
+<strong>Paso 1:</strong>
+
+Descarga de <a href="https://www.oracle.com/mx/database/technologies/instant-client/linux-x86-64-downloads.html" target="_blank">https://www.oracle.com/mx/database/technologies/instant-client/linux-x86-64-downloads.html</a>
+los paquetes de "basic" y "sdk", última versión.
+
+<br /><br />
+<strong>Paso 2: </strong>Descomprime los 2 archivos en una sola carpeta que se llame "instanclient" (puede ser cualquier nombre)
+
+<br /><br />
+<strong>Paso 3: </strong>Mueve la carpeta "instanclient" a /opt/ o al lugar de tu preferencia
+
+<br /><br />
+<strong>Paso 4 (opcional): </strong>Si descargaste los paquetes basic y sdk en una versión antigua ( de la 10.1 para abajo ), tendrás que crear las ligas simbolicas usando los siguientes comandos
+
+<kbd class="kbd-linux"># ln -s libclntsh.so.10.1 libclntsh.so</kbd>
+<kbd class="kbd-linux"># ln -s libocci.so.10.1 libocci.so</kbd>
+
+
+<strong>Paso 5: </strong>Instala los siguientes paquetes
+
+<kbd class="kbd-linux"># apt-get install php php-dev libaio1 php-pear build-essential</kbd>
+
+
+<strong>Paso 6: </strong>Descarga y compila el paquete oci
+
+<kbd class="kbd-linux"># pecl install oci8</kbd>
+
+<strong>NOTA IMPORANTE: </strong> Si estás utilizando éste manual para instalar oci en una versión antigua de php (version 5.2 - 5.6), tendrás que ejecutar el siguiente comando en su lugar
+
+<kbd class="kbd-linux"># pecl install oci8-2.0.12</kbd>
+
+
+<strong>Paso 6-1: </strong>Casi inmediatamente después de ejecutar el comando, te pedirá que le indiques donde está la carpeta del instantclient que hicimos en el Paso 3.
+Únicamente se lo indicas de la siguiente manera: <strong>instantclient,/opt/instantclient</strong> y ENTER
+
+<br /><br />
+<strong>Paso 7: </strong>Cambia los permisos de la carpeta instantclient
+
+<kbd class="kbd-linux"># chmod -R 755 /opt/instantclient</kbd>
+
+
+<strong>Paso 8: </strong>Ahora añade la libreria oci recien compilada a los módulos de php de la siguiente forma
+
+<kbd class="kbd-linux"># echo "extension=oci8.so" > /etc/php/7.3/mods-available/oci8.ini</kbd>
+
+
+<strong>Paso 9: </strong>Ingresa a la carpeta de configuración de php-fpm, y habilita el módulo oci
+
+<kbd class="kbd-linux"># cd /etc/php/7.3/cli/conf.d/</kbd>
+<kbd class="kbd-linux"># ln -s ../../mods-available/oci8.ini 35-oci8.ini</kbd>
+
+
+<strong>Paso 10: </strong>Añade instantclient a nuestra configuracion de librerias dinamicas
+
+<kbd class="kbd-linux"># echo /opt/instantclient > /etc/ld.so.conf.d/instantclient.conf</kbd>
+
+
+<strong>Paso 11: </strong>Actualiza las librerias dinamicas
+
+<kbd class="kbd-linux"># ldconfig</kbd>
+
+Listo, esto es todo, si quieres ver si está instalado correctamente, ejecuta el siguiente comando
+
+<kbd class="kbd-linux"># php -i | grep oci</kbd>
+
+Debes ver algo parecido a esto:
+<br />
+<img src="imagenes/oracle-cli.jpg" />

@@ -1,0 +1,129 @@
+<h1 class="h1">Introducción a LDAP</h1><br />
+
+<p>
+	Te explicaré un poco como funciona el LDAP para que le puedas entender a los códigos de PHP.
+	<br /><br />
+	El LDAP en resumen viene siendo como una base de datos, con la única diferencia que no puedes hacer queries como lo harías en la BD normal.
+	<br /><br />
+	Imagina que es como una libreta de contactos, cada hoja de la libreta tendrá el nombre, teléfono, correo, usuario, contraseña, etc de la persona.
+	<br /><br />
+	Existen 2 conceptos esenciales a aprender en LDAP: clases y atributos
+	<ul>
+		<li>Clases: al igual que en un lenguaje de programación, una clase puede contener variables y funciones, pero en LDAP solo contendrán algo llamado "atributos"</li>
+		<li>Atributos: Sería lo equivalente a las variables hablando como si fuera un lenguaje de programación</li>
+	</ul>
+
+	Cada clase contendrá sus propios atributos, y algunos atributos serán de caracter obligatorios (o sea que tendrás que ponerle algun valor para que puedas usar la clase).
+	<br /><br />
+	Los objetos y atributos ya están predefinidos desde que instalas el LDAP, si quieres alguna clase con atributos personalizados, te recomiendo buscar en google como
+	añadir un esquema en ldap, desde php no se puede, es directo en el LDAP.
+	<br /><br />
+	Último para no aburrirte mas, porque muy seguramente te marcará error en PHP y no sabrás ni qué significa. Existen jerarquías de clases en LDAP, están las
+	clases "padres" y clases "hijos", no puedes usar una clase "hijo" sin añadir a la clase "padre" primero. También existen "clases auxiliares" que puedes usarlo
+	cuando quieras sin tener que añadir la típica clase "padre".
+</p>
+
+<br />
+<h1 class="h1">Instalación de la libreria</h1><br />
+
+Por defecto en Debian no viene instalado la libreria, pero si se encuentra en sus repositorios, lo que hacer es instalarlo y después reiniciar apache.
+
+<kbd class="kbd-linux"># apt-get install php-ldap</kbd>
+<kbd class="kbd-linux"># /etc/init.d/apache2 restart</kbd>
+
+<h1 class="h1">Consulta sencilla</h1><br />
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	$conexion_ldap	= ldap_connect( "ldap://localhost:389" );
+
+	ldap_set_option( $conexion_ldap, LDAP_OPT_PROTOCOL_VERSION, 3 );
+	ldap_set_option( $conexion_ldap, LDAP_OPT_REFERRALS, 0 );
+
+	// Nos conectamos con el usuario administrador para realizar una consulta
+	if( ldap_bind( $conexion_ldap, "cn=admin,dc=dominio,dc=mx", "contraseña" ) )
+	{
+		$busqueda	= ldap_search( $conexion_ldap, 'dc=dominio,dc=mx', "cn=gtzcrash@gmail.com" );
+		$resultado	= ldap_get_entries( $conexion_ldap, $busqueda );
+
+		print_r( $resultado );
+	}
+	else
+		echo "Error de conexion o contraseña incorrecta";
+?&gt;
+</pre>
+
+<h1 class="h1">Insertar registro</h1><br />
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	$conexion_ldap	= ldap_connect( "ldap://localhost:389" );
+
+	ldap_set_option( $conexion_ldap, LDAP_OPT_PROTOCOL_VERSION, 3 );
+	ldap_set_option( $conexion_ldap, LDAP_OPT_REFERRALS, 0 );
+
+	if( ldap_bind( $conexion_ldap, "cn=admin,dc=dominio,dc=mx", "contraseña" ) )
+	{
+		$correo		= 'gtzcrash@gmail.com';
+
+		$ldap_datos			= array( );
+		$ldap_datos['objectClass'][0]	= "organizationalRole";
+		$ldap_datos['objectClass'][1]	= "posixAccount";
+
+		$ldap_datos['uid'] 		= 'gtzcrash@gmail.com';
+		$ldap_datos['cn']		= 'gtzcrash@gmail.com';
+		$ldap_datos['homeDirectory']	= '/home/gtzcrash@gmail.com';
+		$ldap_datos['gecos']		= 'Marcos';
+		$ldap_datos['gidNumber']	= '2';
+		$ldap_datos["uidNumber"]	= '20001';
+
+		if( ldap_add( $conexion_ldap, "cn=$correo,dc=dominio,dc=mx", $ldap_datos ) )
+			echo "Exito";
+
+		else
+			echo "Error";
+	}
+?&gt;
+</pre>
+
+<h1 class="h1">Borrar registro</h1><br />
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	$conexion_ldap	= ldap_connect( "ldap://localhost:389" );
+
+	ldap_set_option( $conexion_ldap, LDAP_OPT_PROTOCOL_VERSION, 3 );
+	ldap_set_option( $conexion_ldap, LDAP_OPT_REFERRALS, 0 );
+
+	if( ldap_bind( $conexion_ldap, "cn=admin,dc=dominio,dc=mx", "contraseña" ) )
+	{
+		if( ldap_delete( $conexion_ldap, "cn=gtzcrash@gmail.com,dc=dominio,dc=mx" ) )
+			echo "Exito";
+
+		else
+			echo "Error";
+	}
+?&gt;
+</pre>
+
+<h1 class="h1">Actualizar registro</h1><br />
+
+<pre class="prettyprint lang-php">
+&lt;?php
+	$conexion_ldap	= ldap_connect( "ldap://localhost:389" );
+
+	ldap_set_option( $conexion_ldap, LDAP_OPT_PROTOCOL_VERSION, 3 );
+	ldap_set_option( $conexion_ldap, LDAP_OPT_REFERRALS, 0 );
+
+	if( ldap_bind( $conexion_ldap, "cn=admin,dc=dominio,dc=mx", "contraseña" ) )
+	{
+		$ldap_datos['gecos']	= 'Fulanito';
+
+		if( ldap_modify( $conexion_ldap, "cn=gtzcrash@gmail.com,dc=dominio,dc=mx", $ldap_datos ) )
+			echo "Siii";
+
+		else
+			echo "Noooo";
+	}
+?&gt;
+</pre>

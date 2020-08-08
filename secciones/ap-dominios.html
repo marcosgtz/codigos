@@ -1,0 +1,94 @@
+<h1 class="h1">Configuración de Dominios (virtualhost)</h1><br />
+
+Únicamente pondré lo más básico en este manual, o sea que no tocaremos SSL ni entraremos en detalles de todas las opciones disponibles.
+<br /><br />
+Para configurar dominios en apache, necesitaremos un servidor DNS o comprar algunos en Internet, como no tenemos uno, tendremos que hacer algo de trampa modificando
+<strong>/etc/hosts</strong> añadiendo al final lo siguiente:
+
+<kbd class="kbd-linux">
+	127.0.1.1	<span class='ml-5'>marcosgtz.mx</span>			<br />
+	127.0.1.1 	<span class='ml-5'>pruebas.com</span>			<br />
+	127.0.1.1	<span class='ml-5'>nosequeponer.net</span>		<br />
+</kbd>
+
+Asi que al intentar ingresar desde un explorador web (chrome, firefox, etc) a marcosgtz.mx, pruebas.com o nosequeponer.net, inmediatamente irá a nuestro localhost
+y veremos lo siguiente:
+<br />
+<img src="imagenes/apache_index.png" />
+
+<br /><br />
+
+Ahora, imaginemos que tenemos 10 páginas completas en <strong>/var/www/html/</strong>:
+
+<ul>
+	<li>/var/www/html/pagina1/</li>
+	<li>/var/www/html/pruebas/</li>
+	<li>/var/www/html/proyecto1/</li>
+	<li>/var/www/html/proyecto2/</li>
+	<li>/var/www/html/proyecto3/</li>
+	<li>/var/www/html/blog/</li>
+	<li>/var/www/html/test/</li>
+	<li>/var/www/html/cpanel/</li>
+	<li>/var/www/html/phpmyadmin/</li>
+	<li>/var/www/html/helpdesk/</li>
+</ul>
+
+Ahora la pregunta...como sabe apache, que proyecto/página cargará dependiendo del dominio? Por ahora no lo sabe apache, asi que intentará cargar lo que haya en
+<strong>/var/www/html/index.html (o index.php)</strong>
+
+<br /><br />
+
+Lo que tenemos que hacer para asociar un dominio a una carpeta, es editar el archivo
+<strong>/etc/apache2/sites-enabled/000-default.conf</strong> (si no quieres tocar este archivo, puedes crear un archivo en blanco pero que esté dentro de ésta
+carpeta con la extension .conf).
+
+<br /><br />
+
+Si quieres que el dominio pruebas.com apunte a la carpeta /var/www/html/proyecto3/, tienes que añadir lo siguiente a 000-default.conf
+
+<kbd class="kbd-linux">
+<pre>
+&lt;VirtualHost *:80&gt;
+	ServerAdmin marcos.gtz@unach.mx
+	ServerName pruebas.com
+	DocumentRoot /var/www/html/proyecto3/
+&lt;/VirtualHost&gt;</pre>
+</kbd>
+
+O bien, si quieres que 2 dominios, marcosgtz.mx y nosequeponer.net apunte a /var/www/html/blog/, añade lo siguiente
+
+<kbd class="kbd-linux">
+<pre>
+&lt;VirtualHost *:80&gt;
+	ServerAdmin marcos.gtz@unach.mx
+	ServerName marcosgtz.mx
+	ServerAlias nosequeponer.net
+	DocumentRoot /var/www/html/blog/
+&lt;/VirtualHost&gt;</pre>
+</kbd>
+
+<strong>Explicación:</strong> <br />
+<ul>
+	<li>
+		<strong>ServerAdmin</strong> contendrá el correo de quien es el administrador del proyecto/página, éste valor es meramente informativo,
+		no te enviará correo ni nada. Te sirve en caso de tener configurado muchos muchos VirtualHost y no sepas quien es el administrador de ésa página.
+	</li>
+	<li>
+		<strong>ServerName</strong> contendrá el nombre del dominio, solo puedes agregar 1 valor, si quieres agregar mas dominios, tienes que usar ServerAlias
+	</li>
+	<li>
+		<strong>ServerAlias</strong> contendrá todos los demás dominios que quieras que reconozca
+	</li>
+	<li>
+		<strong>DocumentRoot</strong> contendrá la ruta absoluta de la carpeta donde está tu página.
+	</li>
+</ul>
+
+<strong>Notas importantes:</strong> <br />
+<ul>
+	<li>Después de cada cambio a 000-default.conf, tienes que reiniciar apache.</li>
+	<li>marcosgtz.mx y www.marcosgtz.mx, NO SON LO MISMO, son 2 dominios completamente diferentes, asi que ten en cuenta ese detalle en el manejo de dominios</li>
+	<li>Mas detalles: <a href="https://httpd.apache.org/docs/2.4/mod/core.html#serveradmin">https://httpd.apache.org/docs/2.4/mod/core.html#serveradmin</a></li>
+</ul>
+
+<br />
